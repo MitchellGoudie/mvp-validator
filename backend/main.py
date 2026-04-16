@@ -55,6 +55,20 @@ def get_ideas():
             }
         ]
 
+class CreateIdeaRequest(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+@app.post("/ideas")
+def create_idea(req: CreateIdeaRequest):
+    try:
+        from sheets import add_idea_to_sheet
+        result = add_idea_to_sheet(req.name, req.description)
+        return result
+    except Exception as e:
+        print(f"Failed to add idea: {e}")
+        return {"error": True, "message": str(e)}
+
 import time
 from fastapi import HTTPException
 from crew import run_validation_crew, run_prd_crew

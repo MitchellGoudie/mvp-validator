@@ -140,3 +140,47 @@ def update_sheet_with_result(idea_id: str, status: str, validation_json: dict):
         valueInputOption="RAW",
         body=body
     ).execute()
+
+def add_idea_to_sheet(name: str, description: str):
+    sheet_id = os.getenv('GOOGLE_SHEETS_ID')
+    creds = get_credentials()
+    service = build('sheets', 'v4', credentials=creds)
+    
+    sheet_metadata = service.spreadsheets().get(spreadsheetId=sheet_id).execute()
+    first_sheet_title = sheet_metadata['sheets'][0]['properties']['title']
+    
+    result = service.spreadsheets().values().get(
+        spreadsheetId=sheet_id,
+        range=f"{first_sheet_title}!A:A"
+    ).execute()
+    
+    values = result.get('values', [])
+    
+    max_id = 0
+    # Process rows skip header
+    for row in values[1:]:
+        if row and row[0].strip().isdigit():
+            val = int(row[0].strip())
+            if val > max_id:
+                max_id = val
+                
+    new_id = max_id + 1
+    
+    body = {
+        'values': [[str(new_id), name, description if description else "", ""]]
+    }
+    
+    service.spreadsheets().values().append(
+        spreadsheetId=sheet_id,
+        range=f"{first_sheet_title}!A:D",
+        valueInputOption="USER_ENTERED",
+        insertDataOption="INSERT_ROWS",
+        body=body
+    ).execute()
+    
+    return {
+        "id": str(new_id),
+        "name": name,
+        "description": description if description else "",
+        "status": "unvalidated"
+    }
